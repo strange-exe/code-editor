@@ -20,6 +20,14 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: "0.24.1",
+    date: "2026-11-01",
+    title: "C and C++ run at once after the download in Safari",
+    items: [
+      { kind: "fixed", text: "In Safari, a C or C++ program run straight after the one-time C/C++ download could be stopped with \"ran for longer than 15 s\" before it printed anything. It now starts at once." },
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-10-31",
     title: "Python's download is checked more closely",

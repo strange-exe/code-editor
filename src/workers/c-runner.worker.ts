@@ -82,8 +82,11 @@ self.onmessage = async ({ data }: MessageEvent<ToProgram>) => {
   let exitCode = 0;
   let crash: string | undefined;
   try {
-    const module = await WebAssembly.compile(data.wasm as Uint8Array<ArrayBuffer>);
-    const instance = await WebAssembly.instantiate(module, importObject(module, host));
+    // Compiled here on this worker's own thread, not with WebAssembly.compile: WebKit queues an
+    // async compile behind the C/C++ pack's (tens of MB), so a first run right after the pack
+    // arrived waited there past its time limit (measured 2026-11-01: 3 of 9 runs, never with this).
+    const module = new WebAssembly.Module(data.wasm as Uint8Array<ArrayBuffer>);
+    const instance = new WebAssembly.Instance(module, importObject(module, host));
     host.bind(instance.exports.memory as WebAssembly.Memory);
     (instance.exports._start as () => void)();
   } catch (e) {

@@ -6,6 +6,14 @@ Every change to ExecFlow (CodeEditor before 0.16.0) that reached the site, newes
 
 This file is written from `src/about/changelog.ts` by `node scripts/write-changelog.mjs`: edit the data, not this file.
 
+## [0.24.1] - 2026-11-01
+
+C and C++ run at once after the download in Safari
+
+### Fixed
+
+- In Safari, a C or C++ program run straight after the one-time C/C++ download could be stopped with "ran for longer than 15 s" before it printed anything. It now starts at once.
+
 ## [0.24.0] - 2026-10-31
 
 Python's download is checked more closely

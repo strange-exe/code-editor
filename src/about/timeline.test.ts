@@ -93,7 +93,8 @@ describe("the release timeline", () => {
 
   it("groups the release index by month, newest first, every release once", () => {
     const groups = byMonth(CHANGELOG);
-    expect(groups[0].month).toBe("October 2026");
+    // The newest release opens the first group, whatever month it is (labels: the fixed data below).
+    expect(groups[0].releases[0]).toBe(CHANGELOG[0]);
     expect(groups.flatMap((g) => g.releases)).toEqual([...CHANGELOG]);
     expect(byMonth([release("0.3.0", "2026-11-02"), release("0.2.0", "2026-10-18"), release("0.1.0", "2026-10-01")]).map((g) => [g.month, g.releases.length])).toEqual([
       ["November 2026", 1],
