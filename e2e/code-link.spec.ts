@@ -115,6 +115,39 @@ test.describe("a link that can't be opened says why and adds nothing", () => {
   }
 });
 
+test("a deflate bomb is fed to the browser's decoder 1 KiB at a time, and feeding stops at the first slices", async ({ page }) => {
+  // How far a decoder takes input ahead of its output is the engine's own: Node on Linux took a whole
+  // 32 KiB bomb (CI, 2026-10-31), so the unit test can't pin it. In a browser, DecompressionStream is
+  // a transform stream: measured on 2026-10-31, Chromium and WebKit took 1 slice, Firefox 2.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __inflateWrites: number[] };
+    w.__inflateWrites = [];
+    const Real = window.DecompressionStream;
+    class Spy extends Real {
+      get writable() {
+        const inner = super.writable.getWriter();
+        return new WritableStream<BufferSource>({
+          async write(chunk) {
+            w.__inflateWrites.push(chunk.byteLength);
+            await inner.write(chunk);
+          },
+          close: () => inner.close(),
+          abort: (reason) => inner.abort(reason),
+        });
+      }
+    }
+    window.DecompressionStream = Spy;
+  });
+  const bomb = deflateRawSync(Buffer.alloc(5 * 1024 * 1024));
+  expect(bomb.length).toBeGreaterThan(4 * 1024);
+  await openApp(page, `/#code=1.${bomb.toString("base64url")}`);
+  await expect(page.locator(".notice")).toContainText(/holds more than a code link can/);
+  const writes = await page.evaluate(() => (window as unknown as { __inflateWrites: number[] }).__inflateWrites);
+  expect(writes.length).toBeGreaterThan(0);
+  expect(Math.max(...writes)).toBeLessThanOrEqual(1024);
+  expect(writes.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(3 * 1024);
+});
+
 test("a link with Windows line endings is added with LF, as a file import adds it", async ({ page }) => {
   const forged = `#code=1.${deflateRawSync(JSON.stringify({ n: "crlf.c", t: C_PROGRAM.split("\n").join(String.fromCharCode(13) + "\n") })).toString("base64url")}`;
   await openLink(page, forged);
